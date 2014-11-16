@@ -1,9 +1,8 @@
 var trumpet = require('trumpet');
 
-module.exports = function harmonBinary(reqSelectors, resSelectors, htmlOnly) {
+module.exports = function harmonBinary(reqSelectors, resSelectors) {
   var _reqSelectors = reqSelectors || [];
   var _resSelectors = resSelectors || [];
-  var _htmlOnly     = htmlOnly || false;
 
   function prepareRequestSelectors(req, res) {
     var tr = trumpet();
@@ -82,27 +81,14 @@ module.exports = function harmonBinary(reqSelectors, resSelectors, htmlOnly) {
   }
     
   return function harmonBinary(req, res, next) {
-    var ignore = false;
-
-    if (_htmlOnly) {
-      var lowercaseUrl = req.url.toLowerCase();
-
-      if ((lowercaseUrl.indexOf('.js', req.url.length - 3) !== -1) ||
-          (lowercaseUrl.indexOf('.css', req.url.length - 4) !== -1)) {
-        ignore = true;
-      }
+    if (_reqSelectors.length) {
+      prepareRequestSelectors(req, res);
     }
 
-    if (!ignore) {
-      if (_reqSelectors.length) {
-        prepareRequestSelectors(req, res);
-      }
-
-      if (_resSelectors.length) {
-        prepareResponseSelectors(req, res);
-      }
+    if (_resSelectors.length) {
+      prepareResponseSelectors(req, res);
     }
-
+    
     next();
   };
 };
