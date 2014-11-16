@@ -1,8 +1,9 @@
 var trumpet = require('trumpet');
 
-module.exports = function harmonBinary(reqSelectors, resSelectors) {
+module.exports = function harmonBinary(reqSelectors, resSelectors, htmlOnly) {
   var _reqSelectors = reqSelectors || [];
   var _resSelectors = resSelectors || [];
+  var _htmlOnly     = htmlOnly || false;
 
   function prepareRequestSelectors(req, res) {
     var tr = trumpet();
@@ -31,7 +32,7 @@ module.exports = function harmonBinary(reqSelectors, resSelectors) {
       /* Sniff out the content-type header.
        * If the response is HTML, we're safe to modify it.
        */
-      if ((typeof contentType != 'undefined') && (contentType.indexOf('text/html') == 0)) {
+      if (!_htmlOnly || ((typeof contentType != 'undefined') && (contentType.indexOf('text/html') == 0))) {
         res.isHtml = true;
 
         // Strip off the content length since it will change.
@@ -71,24 +72,38 @@ module.exports = function harmonBinary(reqSelectors, resSelectors) {
 
   function prepareSelectors(tr, selectors, req, res) {
     for (var i = 0; i < selectors.length; i++) {
-      var callback         = selectors[i].func;
-      var callbackInvoker  = function(element) {
-        callback(element, req, res);
-      }; 
-      
-      tr.selectAll(selectors[i].query, callbackInvoker);
+      (function (callback) {
+        var callbackInvoker  = function(element) {
+          callback(element, req, res);
+        };
+
+        tr.selectAll(selectors[i].query, callbackInvoker);
+      })(selectors[i].func);
     }
   }
     
   return function harmonBinary(req, res, next) {
-    if (_reqSelectors.length) {
-      prepareRequestSelectors(req, res);
+    var ignore = false;
+
+    if (_htmlOnly) {
+      var lowercaseUrl = req.url.toLowerCase();
+
+      if ((lowercaseUrl.indexOf('.js', req.url.length - 3) !== -1) ||
+          (lowercaseUrl.indexOf('.css', req.url.length - 4) !== -1)) {
+        ignore = true;
+      }
     }
 
-    if (_resSelectors.length) {
-      prepareResponseSelectors(req, res);
+    if (!ignore) {
+      if (_reqSelectors.length) {
+        prepareRequestSelectors(req, res);
+      }
+
+      if (_resSelectors.length) {
+        prepareResponseSelectors(req, res);
+      }
     }
-    
+
     next();
   };
 };
