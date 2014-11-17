@@ -1,13 +1,16 @@
 var trumpet = require('trumpet');
 
-module.exports = function harmonBinary(reqSelectors, resSelectors, htmlOnly) {
-  var _reqSelectors = reqSelectors || [];
-  var _resSelectors = resSelectors || [];
-  var _htmlOnly     = (typeof htmlOnly == 'undefined') ? true : htmlOnly;
+module.exports = function harmonBinary(reqSelectors, resSelectors, htmlOnly, selectorLimit) {
+  var _reqSelectors  = reqSelectors || [];
+  var _resSelectors  = resSelectors || [];
+  var _htmlOnly      = (typeof htmlOnly == 'undefined') ? true : htmlOnly;
+  var _selectorLimit = selectorLimit || 25;
 
   function prepareRequestSelectors(req, res) {
     var tr = trumpet();
   
+    tr.setMaxListeners(_selectorLimit);
+
     prepareSelectors(tr, _reqSelectors, req, res);
     
     req.on('data', function(data) {
@@ -20,6 +23,8 @@ module.exports = function harmonBinary(reqSelectors, resSelectors, htmlOnly) {
     var _write      = res.write;
     var _end        = res.end;
     var _writeHead  = res.writeHead;
+
+    tr.setMaxListeners(_selectorLimit);
 
     prepareSelectors(tr, _resSelectors, req, res);
 
